@@ -83,7 +83,13 @@ class App {
   #workouts = [];
 
   constructor() {
+    // Get user's position
     this._getPosition();
+
+    // Get data from local storage
+    this._getLocalStorage();
+
+    // Attach event handlers
     form.addEventListener('submit', this._newWorkout.bind(this)); // an event handler function will always have the this keyword of the dumb element onto which it is attached. Here, it's form
     inputType.addEventListener('change', this._toggleElevationField);
     containerWorkouts.addEventListener('click', this._moveToPopup.bind(this));
@@ -106,7 +112,6 @@ class App {
 
     const coords = [latitude, longitude];
 
-    console.log(this);
     this.#map = L.map('map').setView(coords, this.#mapZoomLevel);
     // console.log(map);
 
@@ -117,6 +122,10 @@ class App {
 
     // Handling clicks on map
     this.#map.on('click', this._showForm.bind(this));
+
+    this.#workouts.forEach(work => {
+      this._renderWorkoutMarker(work);
+    });
   }
 
   _showForm(mapE) {
@@ -188,7 +197,6 @@ class App {
 
     // Add new object to workout array
     this.#workouts.push(workout);
-    console.log(workout);
 
     // Render workout on map as marker
     this._renderWorkoutMarker(workout);
@@ -198,6 +206,9 @@ class App {
 
     // Hide form + clear input fields
     this._hideForm();
+
+    // Set local storage to all workouts
+    this._setLocalStorage();
   }
 
   _renderWorkoutMarker(workout) {
@@ -271,14 +282,12 @@ class App {
 
   _moveToPopup(e) {
     const workoutEL = e.target.closest('.workout');
-    console.log(workoutEL);
 
     if (!workoutEL) return;
 
     const workout = this.#workouts.find(
       work => work.id === workoutEL.dataset.id
     );
-    console.log(workout);
 
     this.#map.setView(workout.coords, this.#mapZoomLevel, {
       animate: true,
@@ -288,7 +297,28 @@ class App {
     });
 
     // using the public interface
-    workout.click();
+    // workout.click(); // objects coming from local storage will not inherit all the methods that they did before.
+  }
+
+  _setLocalStorage() {
+    localStorage.setItem('workouts', JSON.stringify(this.#workouts)); // Do not use local storage to store large amounts of data to avoid slowing down of your app
+  }
+
+  _getLocalStorage() {
+    const data = JSON.parse(localStorage.getItem('workouts'));
+
+    if (!data) return;
+
+    this.#workouts = data;
+
+    this.#workouts.forEach(work => {
+      this._renderWorkout(work);
+    });
+  }
+
+  reset() {
+    localStorage.removeItem('workouts');
+    location.reload();
   }
 }
 
